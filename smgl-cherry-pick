@@ -18,7 +18,7 @@ make_exec() {
 # it also must contain diff changes (this enables merging of bins)
 if ! git show $commit | grep -q "^+++.*\(HISTORY\|ChangeLog\)" && git show $commit | grep -q "^+++"; then
   # just do it
-  git-cherry-pick $commit
+  git cherry pick $commit
   exit 0
 else
   git reset -q --hard # you need a clean checkout for gcp anyway
