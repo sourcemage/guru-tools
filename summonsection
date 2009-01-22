@@ -1,0 +1,71 @@
+#!/bin/sh
+#
+# summonsection v1.5
+#
+# This file is GPL
+#
+# 2002-05-17 M.L. <m.l@compaqnet.fr>
+#
+
+cd /tmp
+
+if [ -e /var/run/summonsection.pid ]; then
+ exit 1
+else
+ echo $$ > /var/run/summonsection.pid
+fi
+
+if [ $# -lt 2 ]; then
+  echo "Usage: $O [-e|-q] <full_path_to_section>,"
+  echo "-e send email to root for unsummonable spells,"
+  echo "-q no to send email."
+  rm /var/run/summonsection.pid
+  exit 1
+fi
+
+if [ ! -x $0 ]; then
+  echo "$1 not found..."
+  rm /var/run/summonsection.pid
+  exit 2
+fi
+
+SECTIONLIST=`ls -1 $2`
+
+echo "Working on:"
+echo $SECTIONLIST
+echo " "
+
+for file in $SECTIONLIST; do
+  if [ ! "$file" == "" ] && [ ! "$file" == "MAINTAINER" ]; then
+    echo -n "Moving $file source archive to /tmp..."
+    mv /var/spool/sorcery/$file* /tmp 1>/dev/null 2>&1
+    echo -n "	Summoning...	"
+    summon $file 1>$$.tmp 2>&1
+    rv=`cat $$.tmp | grep "sauvegard"`
+    if [ "$rv" == "" ]; then
+     echo -n "$file" >> $$.failed
+     grep VERSION $2/$file/DETAILS | head -1  >> $$.failed
+     echo "failed."
+    else
+     echo "done."
+    fi
+    rm $$.tmp
+  fi
+done
+
+echo "done."
+echo " "
+
+if [ -e $$.failed ]; then
+ if [ "$1" == "-e" ]; then
+  echo "Failed spells..." | mail -s "SummonSection-$$ $2 FAILLURE report" -a $$.failed root@localhost
+ fi
+ echo "Failed spells:"
+ cat $$.failed
+ rm $$.failed
+else
+ echo "Flawless victory :)" | mail -s "SummonSection-$$ $2 success report" root@localhost
+fi
+
+rm /var/run/summonsection.pid
+exit 0

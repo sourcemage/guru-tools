@@ -1,0 +1,164 @@
+#!/bin/bash
+#---------------------------------------------------------------------
+##
+##=head1 SYNOPSIS
+##
+##  spider [<spell or section> ...]
+##
+##  Verfies that spell urls are valid.  If no sections or spells are 
+##  given, all spells are verified
+##
+##=head1 DESCRIPTION
+##
+## ...
+##
+##=head1 COPYRIGHT
+##
+## Copyright 2002 by the Source Mage Team
+##
+##=head1 FUNCTIONS
+##
+##=over 4
+##
+#---------------------------------------------------------------------
+. /etc/sorcery/config
+
+#---------------------------------------------------------------------
+##=item gaze_get_spell_urls <spell>
+##
+## Echos all urls associated with a spell
+##
+#---------------------------------------------------------------------
+gaze_get_spell_urls() {
+  for i in ${!SOURCE*} ; do
+    egrep -q "^SOURCE([[:digit:]]*)?_URL$" <<< "$i" || continue
+    eval 'URL_LIST=${'$i'[*]}'
+    [  -n  "$URL_LIST"  ]  &&  echo  "$URL_LIST"
+  done
+}
+
+
+#---------------------------------------------------------------------
+##=item gaze_spider_sections <section> [<section> ...]
+##
+## Verfies that all spell urls in the given sections are valid.
+##
+#---------------------------------------------------------------------
+gaze_spider_sections()  {
+  for  SECTION  in  $SECTIONS;  do
+    message "====================================================="
+    message "Checking Urls in Section: $( basename $SECTION )"
+    message "====================================================="
+    local SPELLS=`codex_get_spells_in_section $SECTION`
+    for  SPELL  in  $SPELLS;  do
+    (
+       codex_set_current_spell $SPELL
+       message            "Checking URLs for $SPELL"
+       local              URL_LIST=`gaze_get_spell_urls  $SPELL`
+       gaze_spider_check  $SPELL  $URL_LIST
+    )
+    done
+    message " "
+  done
+}
+
+#---------------------------------------------------------------------
+##=item gaze_spider_check <spell> <url> [<url> ...]
+##
+## Verifies urls for a particular spell.
+##
+#---------------------------------------------------------------------
+gaze_spider_check()  { (
+
+  SPELL=$1
+  shift  1
+  for  URL  in  $*;  do
+    GAZE_SPIDER_FAILURE_LOG=`url_verify  $URL`  ||
+    ( 
+      echo  "=================================="  >>  /tmp/spider.broke
+      echo  $(basename $SECTION)  $SPELL  $URL    >>  /tmp/spider.broke
+      echo  "----------------------------------"  >>  /tmp/spider.broke
+      echo  $GAZE_SPIDER_FAILURE_LOG              >>  /tmp/spider.broke
+      echo  "  "                                  >>  /tmp/spider.broke
+      echo  "- failed: $URL"
+    )
+  done
+
+) }
+
+#---------------------------------------------------------------------
+##=item gaze_spider_spells <spell> [<spell> ...]
+##
+## Verfies that all given spell urls are valid.
+##
+#---------------------------------------------------------------------
+gaze_spider_spells()  {
+  if  [  -n  "$1"  ]; then
+    message "====================================================="
+    message "Checking Urls for Spells"
+    message "====================================================="
+    for  SPELL_DIRECTORY  in  $@;  do
+    (
+       codex_set_current_spell  $SPELL_DIRECTORY
+       local    URL_LIST=`gaze_get_spell_urls  $SPELL`
+       local    URL_COUNT=`wc -w <<< "$URL_LIST"`
+       message  "Checking $URL_COUNT URLs for $SPELL"
+       gaze_spider_check  $SPELL  $URL_LIST
+    )
+    done
+    message "  "
+  fi
+}
+
+#---------------------------------------------------------------------
+##=item gaze_spider [<spell or section> ...]
+##
+## Verfies that spell urls are valid.  If no sections or spells are 
+## given, all spells are verified
+##
+#---------------------------------------------------------------------
+gaze_spider()  {
+
+  rm  -rf  /tmp/spider.broke
+  rm  -rf  /tmp/spider
+  mkdir    /tmp/spider
+  cd       /tmp/spider
+
+  message  "Writing broken URLs to /tmp/spider.broke"
+  message  "This test might take a while to complete"
+  message  "and consume significant resources."
+
+  unset  SECTIONS  SPELLS  UNKNOWN
+ 
+  [  -z  "$1"  ]  &&  SECTIONS=`codex_get_all_sections`
+
+  for  spell_or_section  in  $@;  do
+
+    if  codex_find_spell_or_section_by_name  $spell_or_section;  then
+      [  -n  "$CODEX_FOUND_SECTION"  ]  &&  SECTIONS="$SECTIONS $CODEX_FOUND_SECTION"
+      [  -n  "$CODEX_FOUND_SPELL"  ]    &&  SPELLS="$SPELLS $CODEX_FOUND_SPELL"
+    else
+      UNKNOWN="$spell_or_section $UNKNOWN"
+    fi 
+
+  done
+
+  gaze_spider_spells   $SPELLS
+  gaze_spider_sections $SECTIONS
+
+  [  -n  "$UNKNOWN"  ]                  &&
+  message "Unknown Spells or Sections"  &&
+  message "--------------------------"  &&
+  message "$UNKNOWN"
+
+  cd  /
+
+}
+
+
+# Here we go!
+echo "First arg is $0"
+echo "Rest of arg are $@"
+echo "This is args star $*"
+echo ""
+gaze_spider $@

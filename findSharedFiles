@@ -1,0 +1,177 @@
+#!/bin/bash
+#
+# findSharedFiles.sh
+# Rasmus Ory Nielsen, 2002-10-05
+# ron #at# ron #dot# dk
+#
+#------------------------------------------------------------------------------
+#
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#
+#------------------------------------------------------------------------------
+#
+# Version 0.1
+#
+# I have made this little bash script that finds files shared between different
+# spells (because this is a bad thing).
+# Example: You install spell A and spell B. A and B both install file 
+# /path/foo.
+# When you dispel either of them, the other spell is possibly broken.
+#
+# The script is a bit slow, depending on the number of installed spells. On my
+# workstation with gnome2 and kde it takes about 3 minutes to run (Athlon 800).
+# I know it can be done smarter, but it was the easiest way to get the job
+# done. So feel free to make a better algorithm.
+#
+# On my machine it gives me a total of 493 shared files. The major part of
+# them is docs/manuals, but there's still a bunch of files that could give
+# problems (if they not allready do).
+#
+# Sample output (grepped with grep '/bin/'):
+# /bin/groups:shadow
+# /bin/groups:sh-utils
+# /bin/kill:util-linux
+# /bin/kill:procps
+# /usr/bin/c++filt:binutils
+# /usr/bin/c++filt:gcc
+# /usr/bin/pspell-config:aspell
+# /usr/bin/pspell-config:pspell
+# /usr/bin/uptime:sh-utils
+# /usr/bin/uptime:procps
+# /usr/bin/xdvi:xdvi
+# /usr/bin/xdvi:teTeX
+#
+#------------------------------------------------------------------------------
+
+
+# Files
+installedFiles=/tmp/installedFiles.txt
+installedFilesRaw=/tmp/installedFilesRaw.txt
+noDuplicatesFile=/tmp/noDuplicatesFile.txt
+
+
+# Read in the config file
+source /etc/sorcery/config
+
+
+# How to use the thing
+function usage() {
+    
+    cat <<EOF
+Usage  : findSharedFiles.sh [OPTION]
+Create a list of installed files that are shared between different spells.
+
+  -h, --help		    print this help page
+  -n, --nice                print a nice header before each shared file
+
+The output is lines on the form: 
+
+   /path/to/file:spell
+
+Example:
+
+   /bin/kill:util-linux
+   /bin/kill:procps
+
+It tells us that both util-linux AND procps have installed the file /bin/kill.
+Output is sent to STDOUT.
+EOF
+
+}
+
+
+# Parse command line arguments
+parseArguments() {
+    
+    let numShift=0;
+
+    # loop through remaining arguments
+    while true; do
+
+	case $1 in
+	    -h|--help) usage; exit;;
+            -n|--nice) NICE="y"; let numShift++; shift 1;;
+            *) return $numShift;;
+	esac
+
+    done
+
+}
+
+
+# Make lists of all installed files
+findInstalledFiles() {
+
+    # get installed spells
+    SPELLS=$(gaze installed | cut -d: -f1)
+
+    # remove files if they exist
+    [ -e $installedFiles ]     && rm $installedFiles
+    [ -e $installedFilesRaw ]  && rm $installedFilesRaw
+
+    # loop through the spell list
+    for spell in $SPELLS; do
+
+	# print all installed files and directories
+	gaze install $spell >> $installedFilesRaw
+
+	# print all installed files (and directories) on the form 'file:spell'
+	for line in $(gaze install $spell); do
+	    echo "${line}:${spell}" >> $installedFiles
+	done
+
+    done
+
+}
+
+
+# Remove duplicate lines
+removeDuplicates() {
+    
+    # find duplicates (both files and directories) and remove them
+    cat $installedFilesRaw | sort | uniq -d > $noDuplicatesFile
+
+}
+
+
+# Print the lines with shared files to STDOUT
+printSharedFiles() {
+
+    # read duplicates into an array
+    noDuplicatesFile=( $(cat "$noDuplicatesFile" | tr '\n' ' ') )
+
+    # loop through the array
+    for line in ${noDuplicatesFile[@]}; do
+
+	# skip this line if it is a directory
+	[[ -d $line ]] && continue
+
+	# print the spell names which installs this file
+	[ -n "$NICE" -a "$NICE"="y" ] && \
+	    echo -e "${BOLD}Shared file: ${FILE_COLOR}$line${DEFAULT_COLOR}";
+	grep "^$line:" $installedFiles
+
+    done
+
+}
+
+
+# Do the thing
+parseArguments $*
+findInstalledFiles
+removeDuplicates
+printSharedFiles

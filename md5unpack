@@ -1,0 +1,8 @@
+#!/bin/bash
+. /etc/sorcery/config
+TMP_DIR=/tmp
+for f in ${*}; do
+  echo -n "$(uncompress $f $(guess_compressor $f)|md5sum|cut -d' ' -f1)  "
+  ls -1 $f
+done
+rm $TMP_DIR/libgrimoire.uncompress.$$

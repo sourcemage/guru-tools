@@ -1,0 +1,196 @@
+#
+# urlwatch
+#
+# v1.4 2002-11-13
+#
+# Mathieu Lubrano <m.l@compaqnet.fr>
+#
+# This file is GPL.
+#
+
+#!/bin/sh
+WRKDIR=~/.urlwatch
+LOGFILE=$WRKDIR/urlwatch.log
+URLFILE=$WRKDIR/urlwatch.conf
+EMAIL=""
+URLS=""
+DEBUG=""
+URLID=""
+
+init() {
+
+  source /etc/profile 1>/dev/null 2>&1
+
+  if [ ! -d $WRKDIR ]; then
+    mkdir $WRKDIR 1>/dev/null 2>&1
+  fi
+
+  cd $WRKDIR
+
+  if [ ! -e $URLFILE ]; then
+    echo "$URLFILE not found."
+    exit 1
+  fi
+
+  URLS=`cat $URLFILE`
+
+  rm -f $LOGFILE $LOGFILE.body
+
+  if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+    echo "Usage:"
+    echo "$0 [-e user@domain.com] [-d] [-u url id]"
+    echo "-e: send email report to user@domain.com"
+    echo "-d: debug"
+    echo "-u: check only this url id"
+    echo " "
+    echo "Add urls in $WRKDIR/$URLFILE with this format to check urls:"
+    echo "TheProgramName#http://www.site.com/theWebPage.html"
+    echo "AnotherOne#http://www.domain.net/rep/"
+    echo "..."
+    echo ""
+    exit 0
+  fi
+
+  if [ "$1" == "-d" ] || [ "$2" == "-d" ] || [ "$3" == "-d" ] || [ "$4" == "-d" ]; then
+    DEBUG="yes"
+  else
+    unset DEBUG
+  fi
+
+  if [ "$1" == "-e" ]; then
+    EMAIL=$2
+  fi
+
+  if [ "$2" == "-e" ]; then
+    EMAIL=$3
+  fi
+
+  if [ "$3" == "-e" ]; then
+    EMAIL=$4
+  fi
+
+  if [ "$1" == "-u" ]; then
+    URLID=$2
+  fi
+
+  if [ "$2" == "-e" ]; then
+    URLID=$3
+  fi
+
+  if [ "$3" == "-u" ]; then
+    URLID=$4
+  fi 
+}
+
+checkURLs() {
+
+  URLS=`cat $URLFILE`
+
+  if [ "$URLID" != "" ]; then
+    echo "Checking $URLID only..."
+  fi
+
+  for url in $URLS; do
+
+    # if the line is a comment, skip to next line
+    commentTest=`echo $url | cut -b 1` 
+    if [ "$commentTest" == "#" ]; then
+      continue
+    fi
+
+    theName=${url%#*}
+    theUrl=${url#*#}
+
+    # if URLID is set, just check this one
+    if [ "$URLID" != "" ] && [ "$URLID" != "$theName" ]; then
+      # continue (skip test) until we found URLID = theName
+      continue
+    fi
+
+    echo -n "Checking $theName @ $theUrl..."
+  
+    if [ ! -d "$theName" ]; then
+      mkdir $theName 1>/dev/null 2>&1
+    fi
+    
+    if [ ! -e "$theName/$theName" ]; then
+      touch $theName/$theName
+    fi
+
+    mv $theName/$theName $theName/$theName.old 1>/dev/null 2>&1
+
+    #wget -q $theUrl -O $theName/$theName
+    lynx -reload -dump $theUrl 1>$theName/$theName 2>&1
+
+    # execute content filtering if any
+    if [ -e $theName/filter ]; then
+      cd $theName
+      source ./filter
+      cd ..
+    fi
+
+    # avoid first test false alarm
+    if [ ! -e $theName/$theName.old ]; then
+      cp $theName/$theName $theName/$theName.old
+    fi
+
+    # avoid false alarm if lynx failed
+    if [ ! -s $theName/$theName ]; then
+      cp $theName/$theName.old $theName/$theName
+    fi
+
+    diffs=`diff $theName/$theName $theName/$theName.old`
+
+    if [ -n "$DEBUG" ]; then
+      echo " "
+      cat $theName/$theName
+    fi
+
+    if [ ! "$diffs" == "" ]; then
+      echo " <- UPDATED."
+      echo "$theName $theUrl" >> $LOGFILE
+      echo "$theName $theUrl" >> $LOGFILE.body
+      echo " " >> $LOGFILE.body
+      echo "$diffs" >> $LOGFILE.body
+      echo "======================================================================"  >> $LOGFILE.body
+      echo " " >> $LOGFILE.body
+    else
+      echo "done."
+    fi
+
+  done
+
+  if [ -e $LOGFILE ]; then
+    echo " " >> $LOGFILE
+    echo "======================================================================"  >> $LOGFILE
+    echo " " >> $LOGFILE
+    cat $LOGFILE.body >> $LOGFILE
+  fi
+
+  rm -f $LOGFILE.body
+}
+
+
+emailReport() {
+  if [ -e "$LOGFILE" ]; then
+    echo -n "Sending email report $$..."
+    cat $LOGFILE | nail -s "$0 report-$$ changed urls..." $EMAIL
+    echo "done."
+  fi
+}
+
+main() {
+  init $*
+
+  checkURLs
+
+  if [ -n "$EMAIL" ]; then
+    emailReport
+  fi
+
+  rm -f $LOGFILE $LOGFILE.body
+
+  exit 0
+}
+
+main $*
