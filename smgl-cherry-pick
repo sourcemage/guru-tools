@@ -9,6 +9,11 @@ commit=$1
 [[ -z $commit ]] && echo no commit specified && exit 100
 [[ -f ChangeLog ]] || { echo run me from the top dir; exit 99; }
 
+make_exec() {
+  [[ $1 == HISTORY ]] && return
+  chmod +x "$1"
+}
+
 # check if commit diff does not contain a HISTORY/ChangeLog header
 # it also must contain diff changes (this enables merging of bins)
 if ! git show $commit | grep -q "^+++.*\(HISTORY\|ChangeLog\)" && git show $commit | grep -q "^+++"; then
@@ -28,6 +33,7 @@ else
         file=$(sed -n '/^+++ / s,^[^/]*/,,p' $diff)
         patch -p1 < $diff
         new_rc=$?
+        make_exec "$file"
         git add "$file"
         [[ $rc == 0 ]] && rc=$new_rc
       else
@@ -37,6 +43,7 @@ else
           echo "Warning, nonexsitent file: $file"
         else # new or updated file
           git show $commit:"$file" > "$file"
+          make_exec "$file"
           git add "$file"
         fi
       fi
@@ -85,6 +92,7 @@ else
 
       cat $diff $file > $file.new
       mv $file.new $file
+      make_exec "$file"
       git add $file # needed when cherrypicking new spells
       echo
     fi
