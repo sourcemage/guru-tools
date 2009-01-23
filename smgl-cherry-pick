@@ -39,7 +39,7 @@ else
       else
         file=$(sed -n '/^diff --git/ { s,^[^/]*/,,; s, .*$,,p} ' $diff)
         if grep -q "^deleted file" $diff; then
-          git-rm "$file" ||
+          git rm "$file" ||
           echo "Warning, nonexsitent file: $file"
         else # new or updated file
           git show $commit:"$file" > "$file"
