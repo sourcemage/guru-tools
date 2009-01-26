@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# a script for cherry-picking whole paths
+# example: dir-cherry-pick utils/kbd
+
+path="$1"
+master=${2:-master} # target branch/commit to check the log against
+
+for i in $path; do
+  [[ -e $i ]] || { echo bad path: $i; exit 1; }
+done
+
+git log --no-merges --pretty=oneline HEAD..$master $path | tac
+echo
+
+echo "Cut and paste desired commits below, then ctrl-D"
+echo "You can paste whole lines from above."
+while read commit junk; do
+  if ! smgl-cherry-pick $commit -n; then
+    echo
+    echo fix the conflict
+    echo and run git commit -F .msg $path; git reset --hard
+    echo then restart me
+    exit 123
+  fi
+  git-show $commit --pretty=format:"%s%n%n%b" | sed '/diff/,$d' > .msg
+  echo "(fake dir cherry-pick from $commit)" >> .msg
+  git commit -F .msg $path
+  git reset --hard
+  echo
+done
+rm -f .msg
