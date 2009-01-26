@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# $1 == desired version
+# $2 == (optional) path to the repository
+version=$1
+path=${2:-.}
+
+tar cjf guru-tools-$version.tar.bz2 "$path" \
+  --transform="s|^[.]*|guru-tools-$version|g" \
+  --exclude=package-guru-tools --exclude=.git
