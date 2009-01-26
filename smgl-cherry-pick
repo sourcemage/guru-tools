@@ -4,8 +4,10 @@
 # good "merging" of HISTORY, ChangeLog and binary files.
 # Conflicts in those files are now rare, but the script has
 # room for improvement.
+# You can pass -n as a second argument to do everything but commit
 rc=0
 commit=$1
+shift
 [[ -z $commit ]] && echo no commit specified && exit 100
 [[ -f ChangeLog ]] || { echo run me from the top dir; exit 99; }
 
@@ -18,7 +20,7 @@ make_exec() {
 # it also must contain diff changes (this enables merging of bins)
 if ! git show $commit | grep -q "^+++.*\(HISTORY\|ChangeLog\)" && git show $commit | grep -q "^+++"; then
   # just do it
-  git cherry-pick $commit
+  git cherry-pick $commit $@
   exit 0
 else
   git reset -q --hard # you need a clean checkout for gcp anyway
@@ -100,7 +102,7 @@ else
 fi
 if [[ $rc == 0 ]]; then
   git show $commit --pretty=format:"%s%n%b%n(cherry-picked from commit %H)" | sed '/^diff --git/,$ d' |
-  git commit -a -F -
+  [[ $@ == ${@//-n/} ]] && git commit -a -F -
 else
 cat << KUKU
 ##########################################################################
