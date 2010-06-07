@@ -18,8 +18,7 @@ fi
 echo -n "Making dependency index of $grimoire in /tmp/depends ... " > /dev/stderr &&
   find . -name DEPENDS |
     while read DEPENDS; do
-      cat "$DEPENDS" |
-        grep -v optional |
+      grep -v optional "$DEPENDS" |
         grep 'depends' |
         sed -e 's/.*depends[ 	]*//g' -e 's/[ 	&].*//g' |
           while read DEPEND; do
