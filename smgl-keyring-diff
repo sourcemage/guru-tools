@@ -1,0 +1,59 @@
+#!/bin/bash
+
+if [ -z $1 ]; then
+  echo
+  echo smgl-keyring-diff shows changes to the gpg keyring in git repository
+  echo
+  echo To show the last change to the gurus.gpg run
+  echo smgl-keyring-diff gurus.gpg
+  echo
+  echo To show change No. 1 run
+  echo smgl-keyring-diff gurus.gpg 1
+  echo
+  exit 1
+fi
+
+C=$(git log $1 | grep ^commit | wc -l)
+
+echo
+echo The $1 keyring has been changed $C times.
+
+if [ -z $2 ]; then
+	B=1
+else
+	B=$(($C-$2+1))
+fi
+
+A=$(($B+1))
+
+BH=$(git log $1 | grep ^commit | head -n $B | tail -n 1 | cut -f2 -d " ")
+AH=$(git log $1 | grep ^commit | head -n $A | tail -n 1 | cut -f2 -d " ")
+
+# B
+git reset -q --hard $BH
+BS=$(ls -l $1 | cut -f 5 -d " ")
+gpg $1 > /tmp/$$-B 2> /dev/null
+
+# A
+git reset -q --hard $AH
+AS=$(ls -l $1 | cut -f 5 -d " ")
+gpg $1 > /tmp/$$-A 2> /dev/null
+
+C=$(($C-$B+1))
+echo The $C. change is
+echo $BH
+echo
+if [ $BH == $AH ]; then
+	echo size: 0 "->" $BS
+	echo
+	cat /tmp/$$-A
+else
+	echo size: $AS "->" $BS
+	echo
+	diff /tmp/$$-A /tmp/$$-B | grep -e \> -e \<
+fi
+echo
+
+git rebase -q origin master
+
+rm /tmp/$$-B /tmp/$$-A
