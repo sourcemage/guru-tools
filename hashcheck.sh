@@ -28,17 +28,26 @@ ${MESSAGE_COLOR}\t-s|--section <section>\t to check whole section
 message "$usage"
 }
 
-# process the params
-while [[ "$1" == -* ]] # 2) params
-  do
+## Parse the command line parameters and arguments via getopt
+TEMP_OPTS=$(getopt -o 's:g:vdfah' -l 'section:,grimoire:,verbose,download,\
+remove-failed,remove-all,help' \
+-n "$(basename $0)" -- "$@")
+if [[ $? != 0 ]]; then  show_usage; exit 3; fi
+# Note the quotes around `$TEMP': they are essential!
+eval set -- "$TEMP_OPTS"
+unset TEMP_OPTS
+
+while true; do
   case "$1" in
      "-s"|"--section")  wanted_spells=$(codex_get_spells_in_section $(codex_find_section_by_name $2)|cut -f8 -d/);      shift 2;;
      "-g"|"--grimoire")  wanted_spells=$(codex_get_all_spells $(codex_find_grimoire $2)| cut -f8 -d/);          shift 2;;
      "-v"|"--verbose") verbose_mode="on" ; shift ;;
      "-d"|"--download") re_download="-d"; shift ;;
-     "-rf"|"--remove-failed")   remove_sources="failed"; shift ;;
-     "-ra"|"--remove-all")   remove_sources="all"; shift ;;
-     "-h"|"--help"|*) show_usage; exit 2 ;;
+     "-f"|"--remove-failed")   remove_sources="failed"; shift ;;
+     "-a"|"--remove-all")   remove_sources="all"; shift ;;
+     "-h"|"--help") show_usage; exit 2 ;;
+     --) shift ; break ;;
+     *) show_usage; exit 3 ;;
   esac
 done
 
