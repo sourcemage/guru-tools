@@ -17,6 +17,9 @@ if [ -z $1 ]; then
   exit 1
 fi
 
+# lets do all the git work in a branch
+git checkout -q -b $(basename $0)-temp
+
 C=$(git log $1 | grep ^commit | wc -l)
 
 echo
@@ -60,6 +63,10 @@ else
 fi
 echo
 
-git rebase -q origin master
+# now lets return to master
+git checkout -q master
+
+# we don't need that branch anymore (discard it quietly)
+git branch -D $(basename $0)-temp > /dev/null 2>&1
 
 rm /tmp/$$-B /tmp/$$-A
