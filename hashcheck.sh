@@ -22,8 +22,8 @@ ${MESSAGE_COLOR}\t-s|--section <section>\t to check whole section
 \t-g|--grimoire <grimoire> to check whole grimoire
 \t-v|--verbose\t\t show output from summon and verify_file
 \t-d|--download\t\t force download of sources
-\t-rf|--remove-failed\t remove sources that are unverified
-\t-ra|--remove-all\t remove all sources after check
+\t-f|--remove-failed\t remove sources that are unverified
+\t-a|--remove-all\t remove all sources after check
 \t-h|--help\t\t show this help"
 message "$usage"
 }
