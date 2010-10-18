@@ -13,6 +13,9 @@
 # we don't need any input...
 PROMPT_DELAY=0
 
+# all the scm VERSIONs that I could find (using regex "or"/"|" )
+scm_versions="git|GIT|scm|SCM|cvs|CVS|svn|SVN|hg|HG|mercurial|HEAD|head|$(date +%Y%m%d)"
+
 # paste data even if we interupt withc ctrl-c :)
 trap 'message "${PROBLEM_COLOR}control-c${DEFAULT_COLOR}"; end_hashcheck 1' INT
 
@@ -22,15 +25,16 @@ ${MESSAGE_COLOR}\t-s|--section <section>\t to check whole section
 \t-g|--grimoire <grimoire> to check whole grimoire
 \t-v|--verbose\t\t show output from summon and verify_file
 \t-d|--download\t\t force download of sources
+\t-i|--ignore-scm\t\t don't bother with spells that have SCM source(s)
 \t-f|--remove-failed\t remove sources that are unverified
-\t-a|--remove-all\t remove all sources after check
+\t-a|--remove-all\t\t remove all sources after check
 \t-h|--help\t\t show this help"
 message "$usage"
 }
 
 ## Parse the command line parameters and arguments via getopt
-TEMP_OPTS=$(getopt -o 's:g:vdfah' -l 'section:,grimoire:,verbose,download,\
-remove-failed,remove-all,help' \
+TEMP_OPTS=$(getopt -o 's:g:vdfahi' -l 'section:,grimoire:,verbose,download,\
+remove-failed,remove-all,help,ignore-scm' \
 -n "$(basename $0)" -- "$@")
 if [[ $? != 0 ]]; then  show_usage; exit 3; fi
 # Note the quotes around `$TEMP': they are essential!
@@ -45,6 +49,7 @@ while true; do
      "-d"|"--download") re_download="-d"; shift ;;
      "-f"|"--remove-failed")   remove_sources="failed"; shift ;;
      "-a"|"--remove-all")   remove_sources="all"; shift ;;
+     "-i"|"--ignore-scm") ignore_scm="yes"; shift ;;
      "-h"|"--help") show_usage; exit 2 ;;
      --) shift ; break ;;
      *) show_usage; exit 3 ;;
@@ -56,6 +61,18 @@ if [[ $wanted_spells == "" ]]; then
 fi
 
 
+#---
+## Get spell version
+## @param spell
+## @return version
+#---
+function get_spell_version() {
+  local spell=$1
+  (
+    codex_set_current_spell_by_name $spell
+    echo $VERSION
+  )
+}
 
 function end_hashcheck() {
   local exit_status=$1
@@ -99,6 +116,10 @@ for spell in $wanted_spells; do
     true
   elif [[ $(sources $spell) == "" ]]; then
     message "${MESSAGE_COLOR}spell doesn't have sources...  SKIPING"
+  elif [[  $ignore_scm == "yes" ]] &&
+       [[ $(get_spell_version $spell) =~ ($scm_versions) ]]; then
+    message "${MESSAGE_COLOR}source is SCM... we are not checking those..." \
+            "SKIPING"
   else
     ver_message "Getting sources${MESSAGE_COLOR} ... "
     if [[ $verbose_mode == on ]]; then
