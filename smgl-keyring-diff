@@ -17,6 +17,7 @@ if [ -z $1 ]; then
   exit 1
 fi
 
+working_branch=$(git branch |grep \* |cut -d" " -f2)
 # lets do all the git work in a branch
 git checkout -q -b $(basename $0)-temp
 
@@ -63,8 +64,8 @@ else
 fi
 echo
 
-# now lets return to master
-git checkout -q master
+# now lets return to branch we were before
+git checkout -q $working_branch
 
 # we don't need that branch anymore (discard it quietly)
 git branch -D $(basename $0)-temp > /dev/null 2>&1
