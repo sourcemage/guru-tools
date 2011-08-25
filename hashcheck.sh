@@ -14,7 +14,7 @@
 PROMPT_DELAY=0
 
 # all the scm VERSIONs that I could find (using regex "or"/"|" )
-scm_versions="git|GIT|scm|SCM|cvs|CVS|svn|SVN|hg|HG|mercurial|HEAD|head|$(date +%Y%m%d)"
+scm_versions="git|GIT|scm|SCM|cvs|CVS|svn|SVN|bzr|BZR|hg|HG|mercurial|HEAD|head|trunk|TRUNK|$(date +%Y%m%d)"
 
 # paste data even if we interupt withc ctrl-c :)
 trap 'message "${PROBLEM_COLOR}control-c${DEFAULT_COLOR}"; end_hashcheck 1' INT
@@ -28,7 +28,7 @@ ${MESSAGE_COLOR}\t-s|--section <section>\t to check whole section
 \t-i|--ignore-scm\t\t don't bother with spells that have SCM source(s)
 \t-f|--remove-failed\t remove sources that are unverified
 \t-a|--remove-all\t\t remove all sources after check
-\t-h|--help\t\t show this help"
+\t-h|--help\t\t show this help ${DEFAULT_COLOR}"
 message "$usage"
 }
 
