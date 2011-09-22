@@ -21,6 +21,11 @@ if [ -z $1 ] || [[ $1 =~ (--help|-h) ]]; then
   show_usage
 fi
 
+if ! file -bi "$1" |  grep -iq gnupg-keyring ; then
+  echo "File $1 is not valid gpg keyring!"
+  show_usage 3
+fi
+
 working_branch=$(git branch |grep \* |cut -d" " -f2)
 # lets do all the git work in a branch
 git checkout -q -b $(basename $0)-temp
