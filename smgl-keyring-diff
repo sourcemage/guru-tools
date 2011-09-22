@@ -26,6 +26,12 @@ if ! file -bi "$1" |  grep -iq gnupg-keyring ; then
   show_usage 3
 fi
 
+if [[ $(git rev-parse --is-inside-work-tree) != "true" ]]; then
+  echo "You must be inside git repository"
+  show_usage 5
+fi
+
+
 working_branch=$(git branch |grep \* |cut -d" " -f2)
 # lets do all the git work in a branch
 git checkout -q -b $(basename $0)-temp
