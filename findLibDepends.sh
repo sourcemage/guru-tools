@@ -32,7 +32,15 @@ function CheckELF()
 	local ret=0
 
 	for lib in $libDeps ; do
-		[[ $lib == /lib/ld-linux.so.2 ]] && continue
+    # glibc links are special. so lets readlink for those.
+    if [[ -L $lib ]] && gaze from $(readlink -f $lib) |grep -iq glibc ; then
+      lib=$(readlink -f $lib)
+    fi
+    # files that have lib/../ are not in install logs
+    if echo $lib |grep -iq ".." ; then
+      lib=$(readlink -f $lib)
+    fi
+    # this sed will fail if version have "-" in it...
 		provider=$(gaze from $lib | sed -n '1,1s/^\([^:]*\)-\([^-:]*\)\?:.*$/\1/p')
 		if ! [[ $provider ]] ; then
 			echo -e "$1 needs $lib. \n\tNot provided by anyone!"
