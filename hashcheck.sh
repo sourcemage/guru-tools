@@ -21,14 +21,14 @@ trap 'message "${PROBLEM_COLOR}control-c${DEFAULT_COLOR}"; end_hashcheck 1' INT
 
 function show_usage() {
 usage="${MESSAGE_COLOR}Usage: ${SPELL_COLOR}$(basename $0) ${FILE_COLOR}spell(s)
-${MESSAGE_COLOR}\t-s|--section <section>\t to check whole section
-\t-g|--grimoire <grimoire> to check whole grimoire
-\t-v|--verbose\t\t show output from summon and verify_file
-\t-d|--download\t\t force download of sources
-\t-i|--ignore-scm\t\t don't bother with spells that have SCM source(s)
-\t-f|--remove-failed\t remove sources that are unverified
-\t-a|--remove-all\t\t remove all sources after check
-\t-h|--help\t\t show this help ${DEFAULT_COLOR}"
+${MESSAGE_COLOR} -s, --section <section> to check whole section
+ -g, --grimoire <grimoire> to check whole grimoire
+ -v, --verbose\t\t show output from summon and verify_file
+ -d, --download\t\t force download of sources
+ -i, --ignore-scm\t don't bother with spells that have SCM source(s)
+ -f, --remove-failed\t remove sources that are unverified
+ -a, --remove-all\t remove all sources after check
+ -h, --help\t\t show this help ${DEFAULT_COLOR}"
 message "$usage"
 }
 
