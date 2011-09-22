@@ -84,12 +84,12 @@ do_args $*
 shift $?
 
 if [ $# -eq 0 ] ; then
-	SPELLS=`find ${GRIMOIRE} -follow -type d -mindepth 2 -maxdepth 2 -printf "%f\n"`
+	SPELLS=`find ${GRIMOIRE} -follow -mindepth 2 -maxdepth 2 -type d  -printf "%f\n"`
 else
 	SPELLS=""
 	# must get spells only in section directory
 	pushd ${GRIMOIRE}
-	SPELLS=`find $* -follow -type d -mindepth 1 -maxdepth 1 -printf "%f\n"`
+	SPELLS=`find $* -follow  -mindepth 1 -maxdepth 1 -type d -printf "%f\n"`
 	popd
 fi
 
