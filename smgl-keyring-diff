@@ -1,20 +1,24 @@
 #!/bin/bash
 
-if [ -z $1 ]; then
-  echo
-  echo $(basename $0) shows changes to the gpg keyring in git repository
-  echo
-  echo To show the last change to the gurus.gpg run:
-  echo $(basename $0) gurus.gpg
-  echo
-  echo To show change No. 1 run:
-  echo $(basename $0) gurus.gpg 1
-  echo
-  echo It also works with negative numbers. For example
-  echo to show preprevious change run:
-  echo $(basename $0) gurus.gpg -2
-  echo
-  exit 1
+function show_usage() {
+  exit_code=${1:-1}
+  usage="$(basename $0) shows changes to the gpg keyring in git repository
+
+To show the last change to the gurus.gpg run:
+$(basename $0) gurus.gpg
+
+To show change No. 1 run:
+$(basename $0) gurus.gpg 1
+
+It also works with negative numbers. For example
+to show preprevious change run:
+$(basename $0) gurus.gpg -2"
+  echo -e "$usage"
+  exit $exit_code
+}
+
+if [ -z $1 ] || [[ $1 =~ (--help|-h) ]]; then
+  show_usage
 fi
 
 working_branch=$(git branch |grep \* |cut -d" " -f2)
