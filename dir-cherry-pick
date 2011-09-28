@@ -23,7 +23,7 @@ while read commit junk; do
     echo then restart me
     exit 123
   fi
-  git-show $commit --pretty=format:"%s%n%n%b" | sed '/diff/,$d' > .msg
+  git show $commit --pretty=format:"%s%n%n%b" | sed '/diff/,$d' > .msg
   echo "(fake dir cherry-pick from $commit)" >> .msg
   git commit -F .msg $path
   git reset --hard
